@@ -4,3 +4,12 @@
 ps_data/
 db_data/
 .DS_Store
+.env
+*.sql
+*.tar.gz
+backups/
+ps_data/
+db_data/
+.DS_Store
+.env
+.env
