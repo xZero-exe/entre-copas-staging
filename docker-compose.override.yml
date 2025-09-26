@@ -1,0 +1,4 @@
+services:
+  prestashop:
+    environment:
+      PS_DOMAIN: "56.125.190.223:8080"

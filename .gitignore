@@ -1,0 +1,6 @@
+.env
+*.sql
+*.tar.gz
+ps_data/
+db_data/
+.DS_Store

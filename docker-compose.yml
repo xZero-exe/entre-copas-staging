@@ -1,0 +1,70 @@
+﻿version: "3.9"
+
+services:
+  mariadb:
+    image: mariadb:10.6
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  prestashop:
+    image: prestashop/prestashop:8.1
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    ports:
+      - "${APP_PORT}:80"
+    environment:
+      DB_SERVER: mariadb
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWD: ${DB_PASSWORD}
+      PS_INSTALL_AUTO: 1
+      PS_DEV_MODE: 0
+      PS_DOMAIN: ${PS_DOMAIN}
+      PS_FOLDER_ADMIN: admin
+      PS_FOLDER_INSTALL: install
+      PS_LANGUAGE: ${PS_LANGUAGE}
+      PS_COUNTRY: ${PS_COUNTRY}
+      PS_ENABLE_SSL: ${PS_ENABLE_SSL}
+      ADMIN_MAIL: ${ADMIN_MAIL}
+      ADMIN_PASSWD: ${ADMIN_PASSWD}
+    volumes:
+      - ps_data:/var/www/html
+
+  phpmyadmin:
+    image: phpmyadmin:5-apache
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    ports:
+      - "${PMA_PORT}:80"
+    environment:
+      PMA_HOST: mariadb
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+
+  # Proxy opcional (activar con: COMPOSE_PROFILES=proxy docker compose up -d)
+  nginx:
+    image: nginx:stable
+    profiles: ["proxy"]
+    restart: unless-stopped
+    depends_on:
+      - prestashop
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  db_data:
+  ps_data:
