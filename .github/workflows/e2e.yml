@@ -16,13 +16,9 @@ jobs:
     timeout-minutes: 30
 
     env:
-      # Usa Variables del repositorio (Settings → Secrets and variables → Actions → Variables)
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
       E2E_PRODUCT_URL: ${{ vars.E2E_PRODUCT_URL }}
       TZ: America/Santiago
-      # Si prefieres Secrets, cambia a:
-      # E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-      # E2E_PRODUCT_URL: ${{ secrets.E2E_PRODUCT_URL }}
 
     steps:
       - name: Checkout
@@ -31,35 +27,32 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
           cache: 'npm'
 
       - name: Install deps
-        run: |
-          npm ci
+        run: npm ci
 
-      - name: Install Playwright browsers
-        run: |
-          npx playwright install --with-deps
+      - name: Install Playwright browsers & deps
+        run: npx playwright install --with-deps
 
-      - name: Print env (debug)
-        run: |
-          echo "E2E_BASE_URL=$E2E_BASE_URL"
-          echo "E2E_PRODUCT_URL=$E2E_PRODUCT_URL"
+      - name: Run Playwright tests (1 worker, html+github reporters)
+        run: npx playwright test --workers=1 --reporter=github,html
 
-      - name: Run E2E tests (Playwright)
-        run: |
-          npx playwright test --reporter=line,github
-
-      # Artefactos útiles (reportes, videos, traces). Subimos siempre para inspección.
-      - name: Upload Playwright report
+      - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
-            .playwright-artifacts/
+          name: playwright-report-${{ github.run_number }}
+          path: playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload raw test-results (traces/videos/screenshots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_number }}
+          path: test-results
           if-no-files-found: ignore
           retention-days: 7
