@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:e2e": "BASE_URL=http://56.125.190.223:8080/ npx playwright test --reporter=line"
+    "test:e2e": "BASE_URL=http://54.232.172.192:8080/ npx playwright test --reporter=line"
   },
   "repository": {
     "type": "git",
