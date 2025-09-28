@@ -1,19 +1,14 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  timeout: 30_000,
   retries: 1,
   use: {
-    baseURL: process.env.BASE_URL || 'http://56.125.190.223:8080/',
-    viewport: { width: 1440, height: 900 },
-    ignoreHTTPSErrors: true,
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  projects: [
-    {
-      name: 'chromium-desktop',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
-    },
-  ],
+  reporter: [['html', { open: 'never' }]],
 });
