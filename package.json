@@ -1,0 +1,31 @@
+{
+  "name": "entre-copas-staging",
+  "version": "1.0.0",
+  "description": "Este proyecto contiene la infraestructura y configuración para desplegar una tienda online de vinos y accesorios, utilizando:",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:e2e": "BASE_URL=http://56.125.190.223:8080/ npx playwright test --reporter=line"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xZero-exe/entre-copas-staging.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/xZero-exe/entre-copas-staging/issues"
+  },
+  "homepage": "https://github.com/xZero-exe/entre-copas-staging#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.55.1"
+  },
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {
+    "playwright": "^1.55.1",
+    "playwright-core": "^1.55.1"
+  }
+}
