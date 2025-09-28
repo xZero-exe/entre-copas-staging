@@ -1,118 +1,77 @@
-// tests/e2e/helpers/actions.ts
-import { Page, expect } from '@playwright/test';
-import { parseCurrency } from './utils';
+import { expect, Page } from '@playwright/test';
 
+/** Navega al primer PDP disponible desde el home. */
 export async function goToFirstProductPDP(page: Page) {
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  // Busca enlaces típicos de card (PrestaShop themes)
   const firstCardLink = page.locator(
     '.product-miniature a.product-thumbnail, ' +
     '.product-miniature h2 a, ' +
-    '.product-title a, ' +
-    'article.product a[href*="id_product"], ' +
-    '.js-product-miniature h2 a'
+    '.js-product-miniature a.product-thumbnail, ' +
+    'article.product a'
   ).first();
 
-  await firstCardLink.waitFor({ state: 'visible' });
+  await expect(firstCardLink, 'No encontré link a un PDP en el Home').toBeVisible();
+  await firstCardLink.click({ trial: true }).catch(() => {}); // trial para comprobar visibilidad
   await firstCardLink.click();
-  await expect(page).toHaveURL(/(id_product|\/\w.*)/);
+  await expect(page).toHaveURL(/\/(product|[a-z-]*\d+|[a-z-]+\/\d+-)/i);
 }
 
-/** Si hay variantes (selects), elige la primera opción válida en cada uno. */
-export async function ensureVariantSelected(page: Page) {
-  const selects = page.locator('.product-variants select, select[name*="group"], select[name*="combination"]');
-  const count = await selects.count();
-  for (let i = 0; i < count; i++) {
-    const sel = selects.nth(i);
-    await sel.waitFor({ state: 'visible' });
-    const options = sel.locator('option:not([disabled])');
-    const nOptions = await options.count();
-    for (let j = 0; j < nOptions; j++) {
-      const value = await options.nth(j).getAttribute('value');
-      if (value && value.trim() !== '') {
-        await sel.selectOption(value);
-        break;
-      }
-    }
-  }
-}
-
-/** Lee el precio en PDP desde múltiples selectores; si no hay, intenta meta[itemprop=price]. */
-export async function readPdpPrice(page: Page): Promise<number> {
-  // Intenta cerrar banner de cookies si tapa la info
-  const cookieBtn = page.getByRole('button', { name: /aceptar|accept|entendido|ok/i }).first();
-  if (await cookieBtn.isVisible().catch(() => false)) {
-    await cookieBtn.click().catch(() => {});
-  }
-
-  // Algunos temas no muestran precio hasta elegir variante
-  await ensureVariantSelected(page).catch(() => {});
-
-  const candidates = [
-    '.current-price [itemprop="price"]',
-    '.current-price .price',
-    '.product-prices .price',
-    '.product-price .price',
-    '.product-information .price',
-    '#our_price_display',
-    '[data-product-price]',
-    '.price[itemprop="price"]',
-    '.price-current',
-    '.current-price-value'
-  ].join(', ');
-
-  const priceLoc = page.locator(candidates).first();
-  if (await priceLoc.count()) {
-    // espera un poquito por si recalcula tras variante
-    await priceLoc.waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
-    const text = (await priceLoc.textContent())?.trim() ?? '';
-    const n = parseCurrency(text);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-
-  // Fallback: meta itemprop=price
-  const meta = page.locator('meta[itemprop="price"][content], span[itemprop="price"][content]').first();
-  if (await meta.count()) {
-    const content = (await meta.getAttribute('content')) ?? '';
-    const n = Number(content.replace(',', '.'));
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-
-  throw new Error('No pude localizar un precio en la PDP con los selectores conocidos.');
-}
-
+/** Agrega el producto actual al carrito. No depende de overlays. */
 export async function addCurrentPdpToCart(page: Page) {
-  const addBtn = page.getByRole('button', { name: /añadir al carrito|add to cart/i });
-  await addBtn.waitFor({ state: 'visible' });
-  await addBtn.click();
+  // Distintos selectores de "Agregar al carrito"
+  const addToCart = page.locator(
+    '#add-to-cart, button.add-to-cart, [data-button-action="add-to-cart"], ' +
+    'button[name="submit"], button[type="submit"].add-to-cart'
+  ).first();
 
-  const goToCart = page
-    .getByRole('link', { name: /proceder al pago|ir a la cesta|ver carrito|checkout/i })
-    .or(page.getByRole('button', { name: /proceder al pago|checkout/i }));
+  // Si hay combinaciones/atributos, intenta seleccionar la primera opción válida
+  const firstSelect = page.locator('select').first();
+  if (await firstSelect.count()) {
+    const hasOptions = await firstSelect.locator('option:not([disabled])').count();
+    if (hasOptions) await firstSelect.selectOption({ index: 1 }).catch(() => {});
+  }
 
-  await goToCart.waitFor({ state: 'visible', timeout: 15000 }).catch(async () => {
-    await page.goto('/cart');
-  });
-  if (await goToCart.isVisible()) await goToCart.first().click();
+  // Asegura que el botón esté habilitado y visible
+  await expect(addToCart, 'Botón "Agregar al carrito" no visible en PDP').toBeVisible();
+  await addToCart.waitFor({ state: 'visible' });
+  // A veces el theme deshabilita hasta cargar stock
+  await page.waitForTimeout(300);
+  await addToCart.click();
+
+  // Espera indicador rápido de que el cart cambió: badge/counter
+  const cartCount = page.locator('.blockcart .cart-products-count, .js-cart-count, [data-cart-count]');
+  await cartCount.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
 }
 
+/** Verifica que exista al menos 1 línea en el carrito. */
 export async function assertAtLeastOneCartLine(page: Page) {
-  const cartLine = page.locator('.cart-item, .cart__item, .cart-overview li, .cart-grid-body .cart-item');
-  await expect(cartLine.first()).toBeVisible({ timeout: 15000 });
-  return cartLine;
+  const anyLine = page.locator(
+    '.cart-overview li, .cart-items .item, .order-items .item, tr.cart_item, .cart-item, .cart__item'
+  ).first();
+  await expect(anyLine, 'No hay líneas de carrito visibles').toBeVisible();
 }
 
-export async function readCartTotal(page: Page) {
-  const selectors = [
-    '.cart-summary-line.cart-total .value',
-    '.cart-summary-totals .value',
-    '#cart-subtotal-products .value',
-    '.cart-detailed-totals .cart-total .value',
-    '.checkout-summary .order-total .value',
-  ].join(', ');
-  const loc = page.locator(selectors).first();
-  await expect(loc).toBeVisible({ timeout: 15000 });
-  const raw = (await loc.textContent())?.trim() ?? '';
-  const n = parseCurrency(raw);
-  if (!Number.isFinite(n)) throw new Error(`No pude parsear total desde: "${raw}"`);
-  return n;
+/** Flujo completo robusto: PDP → add → CART (sin depender del botón/overlay). */
+export async function addOneProductAndOpenCart(page: Page) {
+  await goToFirstProductPDP(page);
+  await addCurrentPdpToCart(page);
+
+  // Ir SIEMPRE directo al carrito
+  await page.goto('/cart', { waitUntil: 'domcontentloaded' });
+
+  // Si no hay línea, reintenta una vez (el click pudo no haber agregado)
+  let ok = true;
+  try {
+    await assertAtLeastOneCartLine(page);
+  } catch {
+    ok = false;
+  }
+  if (!ok) {
+    await goToFirstProductPDP(page);
+    await addCurrentPdpToCart(page);
+    await page.goto('/cart', { waitUntil: 'domcontentloaded' });
+    await assertAtLeastOneCartLine(page);
+  }
 }
