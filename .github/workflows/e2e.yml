@@ -9,25 +9,34 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     env:
+      # Base URL de la tienda / staging (ajústalo en Settings > Secrets and variables > Actions)
       BASE_URL: ${{ secrets.BASE_URL }}
+      # Opcionales si tu setup global los usa
       BO_URL:   ${{ secrets.BO_URL }}
       BO_USER:  ${{ secrets.BO_USER }}
       BO_PASS:  ${{ secrets.BO_PASS }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
       - name: Install deps
         run: npm ci
-      - name: Install Playwright (Chromium)
+
+      - name: Install Playwright (Chromium only)
         run: npx playwright install --with-deps chromium
+
       - name: Run Playwright tests
         run: npx playwright test --reporter=html
+
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -35,7 +44,8 @@ jobs:
           name: playwright-report
           path: playwright-report
           retention-days: 7
-      - name: Upload test-results (videos, traces, screenshots)
+
+      - name: Upload raw test-results (videos, traces, screenshots)
         if: always()
         uses: actions/upload-artifact@v4
         with:
