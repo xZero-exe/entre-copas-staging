@@ -98,7 +98,7 @@ export async function readFirstAndLastGridPrices(page: Page): Promise<{ first: n
 
   const cards = page.locator('.product-miniature, article.product, .js-product-miniature');
   const count = await cards.count();
-  if (count < 2) test.skip(true, 'No hay suficientes resultados para verificar ordenación (se requieren ≥ 2).');
+  if (count < 2) throw new Error( 'No hay suficientes resultados para verificar ordenación (se requieren ≥ 2).');
 
   const firstText = (await cards.nth(0).locator(priceSel).first().textContent().catch(() => ''))?.trim() ?? '';
   const lastText  = (await cards.nth(count - 1).locator(priceSel).first().textContent().catch(() => ''))?.trim() ?? '';
@@ -107,14 +107,14 @@ export async function readFirstAndLastGridPrices(page: Page): Promise<{ first: n
   const last  = parseCurrency(lastText);
 
   if (!Number.isFinite(first) || !Number.isFinite(last)) {
-    test.skip(true, `No pude leer precios de la grilla: "${firstText}" / "${lastText}"`);
+    throw new Error( `No pude leer precios de la grilla: "${firstText}" / "${lastText}"`);
   }
   return { first, last };
 }
 
 /** Aplica el primer facet disponible (si existe), o hace skip si no hay. */
 export async function applyFirstFacet(page: Page) {
-  if (!(await hasFacets(page))) test.skip(true, 'No hay filtros/facetas disponibles en la búsqueda actual.');
+  if (!(await hasFacets(page))) throw new Error( 'No hay filtros/facetas disponibles en la búsqueda actual.');
   const facetCheckbox = page.locator(
     '.faceted-search input[type="checkbox"]:not(:disabled), ' +
     '#search_filters input[type="checkbox"]:not(:disabled), ' +
@@ -128,7 +128,7 @@ export async function applyFirstFacet(page: Page) {
 
 /** Cambia orden; hace skip si no hay control de orden. */
 export async function changeSort(page: Page, labelRegex: RegExp) {
-  if (!(await hasSortControl(page))) test.skip(true, 'No hay control de orden disponible.');
+  if (!(await hasSortControl(page))) throw new Error( 'No hay control de orden disponible.');
 
   const sortSelect = page.locator('select[name*="order"], select[name*="sort"], .js-sort-by');
   if (await sortSelect.count()) {
@@ -159,12 +159,12 @@ export async function changeSort(page: Page, labelRegex: RegExp) {
       return;
     }
   }
-  test.skip(true, `No encontré opción de orden que coincida con ${labelRegex}`);
+  throw new Error( `No encontré opción de orden que coincida con ${labelRegex}`);
 }
 
 /** Ir a página 2 si existe; si no, skip. */
 export async function goToPage2(page: Page) {
-  if (!(await hasPage2(page))) test.skip(true, 'No hay paginación con página 2.');
+  await expect(page.locator('.pagination')).toBeVisible();
   const link = page.locator('.pagination a', { hasText: /^2$/ }).first();
   await link.waitFor({ state: 'visible' });
   await link.click();
