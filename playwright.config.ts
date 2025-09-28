@@ -9,12 +9,14 @@ export default defineConfig({
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  // Si NO hay BASE_URL, Playwright levantará un server local
+  // Si hay BASE_URL (staging/EC2), NO levantes server local
   webServer: process.env.BASE_URL ? undefined : {
     command: 'npm run preview -- --host 0.0.0.0 --port 3000',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } }
+  ],
 });

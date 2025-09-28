@@ -10,6 +10,10 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      BASE_URL: ${{ vars.E2E_BASE_URL }}   # 👈 URL de tu EC2/staging
+      CI: "true"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,16 +30,14 @@ jobs:
       - name: Install Playwright browsers & OS deps
         run: npx playwright install --with-deps
 
-      # Si vas a apuntar a STAGING, define E2E_BASE_URL como Variable/Secret en GitHub
-      # Settings → Secrets and variables → Actions → Variables → E2E_BASE_URL
-      - name: Build app (si levantas server local)
-        if: ${{ !vars.E2E_BASE_URL }}
-        run: npm run build
+      - name: Guard: BASE_URL requerido
+        run: |
+          if [ -z "${BASE_URL}" ]; then
+            echo "❌ Falta BASE_URL. Define E2E_BASE_URL en Settings → Actions → Variables."
+            exit 1
+          fi
 
       - name: Run Playwright tests
-        env:
-          BASE_URL: ${{ vars.E2E_BASE_URL }} # o secrets.E2E_BASE_URL
-          CI: "true"
         run: npx playwright test --reporter=line,html
 
       - name: Upload HTML report
