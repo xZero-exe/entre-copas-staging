@@ -1,59 +1,65 @@
-name: e2e
+name: E2E (Playwright)
 
 on:
   push:
     branches: [ main ]
   pull_request:
-  workflow_dispatch:   # 👈 habilita botón "Run workflow" en GitHub Actions
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  playwright:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     env:
-      CI: true
+      # Usa Variables del repositorio (Settings → Secrets and variables → Actions → Variables)
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+      E2E_PRODUCT_URL: ${{ vars.E2E_PRODUCT_URL }}
       TZ: America/Santiago
-      LANG: es_CL.UTF-8
-      LC_ALL: es_CL.UTF-8
-      BASE_URL: ${{ secrets.BASE_URL }}   # 👈 Define este Secret en GitHub
+      # Si prefieres Secrets, cambia a:
+      # E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      # E2E_PRODUCT_URL: ${{ secrets.E2E_PRODUCT_URL }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.14.0'   # pon la misma versión que usas en local
+          node-version: '20'
           cache: 'npm'
 
       - name: Install deps
-        run: npm ci
-
-      - name: Install Playwright browsers & deps
-        run: npx playwright install --with-deps
-
-      - name: Smoke check BASE_URL
-        if: env.BASE_URL != ''
         run: |
-          echo "Probing ${BASE_URL}"
-          curl -I --max-time 10 "${BASE_URL}" || (echo "BASE_URL no accesible desde Actions" && exit 1)
+          npm ci
 
-      - name: Run Playwright tests
-        run: DEBUG=pw:api npx playwright test --reporter=dot --workers=1
+      - name: Install Playwright browsers
+        run: |
+          npx playwright install --with-deps
 
-      - name: Upload Playwright HTML report
+      - name: Print env (debug)
+        run: |
+          echo "E2E_BASE_URL=$E2E_BASE_URL"
+          echo "E2E_PRODUCT_URL=$E2E_PRODUCT_URL"
+
+      - name: Run E2E tests (Playwright)
+        run: |
+          npx playwright test --reporter=line,github
+
+      # Artefactos útiles (reportes, videos, traces). Subimos siempre para inspección.
+      - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report
-          retention-days: 7
-
-      - name: Upload test-results (traces/videos/screenshots)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: test-results
+          path: |
+            playwright-report/
+            test-results/
+            .playwright-artifacts/
+          if-no-files-found: ignore
           retention-days: 7
