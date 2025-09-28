@@ -1,48 +1,47 @@
 import { expect, Page } from '@playwright/test';
 
-/** Navega al primer PDP disponible desde el home. */
-export async function goToFirstProductPDP(page: Page) {
+/** Si hay E2E_PRODUCT_URL usa esa PDP directa; si no, toma la primera desde el Home. */
+export async function goToPDP(page: Page) {
+  const direct = process.env.E2E_PRODUCT_URL;
+  if (direct) {
+    await page.goto(direct, { waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/\/product|\/\d+-|\.html/i);
+    return;
+  }
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-  // Busca enlaces típicos de card (PrestaShop themes)
   const firstCardLink = page.locator(
     '.product-miniature a.product-thumbnail, ' +
     '.product-miniature h2 a, ' +
     '.js-product-miniature a.product-thumbnail, ' +
     'article.product a'
   ).first();
-
   await expect(firstCardLink, 'No encontré link a un PDP en el Home').toBeVisible();
-  await firstCardLink.click({ trial: true }).catch(() => {}); // trial para comprobar visibilidad
   await firstCardLink.click();
-  await expect(page).toHaveURL(/\/(product|[a-z-]*\d+|[a-z-]+\/\d+-)/i);
+  await expect(page).toHaveURL(/\/product|\/\d+-|\.html/i);
 }
 
-/** Agrega el producto actual al carrito. No depende de overlays. */
+/** Agrega el producto actual al carrito (sin overlay). */
 export async function addCurrentPdpToCart(page: Page) {
-  // Distintos selectores de "Agregar al carrito"
-  const addToCart = page.locator(
-    '#add-to-cart, button.add-to-cart, [data-button-action="add-to-cart"], ' +
-    'button[name="submit"], button[type="submit"].add-to-cart'
-  ).first();
-
-  // Si hay combinaciones/atributos, intenta seleccionar la primera opción válida
+  // Si hay selectores de atributos, selecciona la primera opción válida
   const firstSelect = page.locator('select').first();
   if (await firstSelect.count()) {
-    const hasOptions = await firstSelect.locator('option:not([disabled])').count();
-    if (hasOptions) await firstSelect.selectOption({ index: 1 }).catch(() => {});
+    const opts = await firstSelect.locator('option:not([disabled])').count();
+    if (opts) await firstSelect.selectOption({ index: 1 }).catch(() => {});
   }
 
-  // Asegura que el botón esté habilitado y visible
-  await expect(addToCart, 'Botón "Agregar al carrito" no visible en PDP').toBeVisible();
-  await addToCart.waitFor({ state: 'visible' });
-  // A veces el theme deshabilita hasta cargar stock
-  await page.waitForTimeout(300);
-  await addToCart.click();
+  const addToCart = page.locator(
+    '#add-to-cart, button.add-to-cart, [data-button-action="add-to-cart"], ' +
+    'button[name="submit"].add-to-cart, button[type="submit"].add-to-cart, button[name="submit"]'
+  ).first();
 
-  // Espera indicador rápido de que el cart cambió: badge/counter
+  await expect(addToCart, 'Botón "Agregar al carrito" no visible').toBeVisible();
+  // Algunos themes lo habilitan tras cargar stock
+  await page.waitForTimeout(300);
+  await addToCart.click().catch(() => {}); // ignora overlay bloqueante
+
+  // Señal rápida: badge/counter visible si existe
   const cartCount = page.locator('.blockcart .cart-products-count, .js-cart-count, [data-cart-count]');
-  await cartCount.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  await cartCount.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
 }
 
 /** Verifica que exista al menos 1 línea en el carrito. */
@@ -53,23 +52,18 @@ export async function assertAtLeastOneCartLine(page: Page) {
   await expect(anyLine, 'No hay líneas de carrito visibles').toBeVisible();
 }
 
-/** Flujo completo robusto: PDP → add → CART (sin depender del botón/overlay). */
+/** Flujo completo y robusto: PDP → add → /cart, con un reintento si calza vacío. */
 export async function addOneProductAndOpenCart(page: Page) {
-  await goToFirstProductPDP(page);
+  await goToPDP(page);
   await addCurrentPdpToCart(page);
-
-  // Ir SIEMPRE directo al carrito
   await page.goto('/cart', { waitUntil: 'domcontentloaded' });
 
-  // Si no hay línea, reintenta una vez (el click pudo no haber agregado)
   let ok = true;
-  try {
-    await assertAtLeastOneCartLine(page);
-  } catch {
-    ok = false;
-  }
+  try { await assertAtLeastOneCartLine(page); } catch { ok = false; }
+
   if (!ok) {
-    await goToFirstProductPDP(page);
+    // Un reintento por si el primer click no agregó
+    await goToPDP(page);
     await addCurrentPdpToCart(page);
     await page.goto('/cart', { waitUntil: 'domcontentloaded' });
     await assertAtLeastOneCartLine(page);
