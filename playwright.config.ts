@@ -9,7 +9,7 @@ export default defineConfig({
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  // Si NO hay BASE_URL, Playwright levanta un server local (Vite 'preview' de ejemplo)
+  // Si NO hay BASE_URL, Playwright levantará un server local
   webServer: process.env.BASE_URL ? undefined : {
     command: 'npm run preview -- --host 0.0.0.0 --port 3000',
     url: 'http://localhost:3000',
