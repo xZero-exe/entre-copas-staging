@@ -4,17 +4,19 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  workflow_dispatch:   # 👈 habilita botón "Run workflow" en GitHub Actions
 
 jobs:
   playwright:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
     env:
       CI: true
       TZ: America/Santiago
       LANG: es_CL.UTF-8
       LC_ALL: es_CL.UTF-8
-      BASE_URL: ${{ secrets.BASE_URL }}   # define el Secret en GitHub
+      BASE_URL: ${{ secrets.BASE_URL }}   # 👈 Define este Secret en GitHub
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +24,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.14.0'
+          node-version: '20.14.0'   # pon la misma versión que usas en local
           cache: 'npm'
 
       - name: Install deps
