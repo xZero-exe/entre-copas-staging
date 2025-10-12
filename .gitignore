@@ -18,3 +18,22 @@ playwright-report/
 test-results/
 .env*
 .DS_Store
+### entre-copas ignore ###
+# Docker & Compose artefactos
+*.log
+.env
+.env.*
+docker-data/
+volumes/
+# PrestaShop (archivos generados/caché)
+ps_data/
+var/cache/
+var/logs/
+# Node / tooling
+node_modules/
+# IDE
+.vscode/
+.idea/
+# SO
+.DS_Store
+Thumbs.db
