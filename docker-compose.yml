@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.8"
 
 services:
   mariadb:
@@ -8,11 +8,10 @@ services:
       MARIADB_DATABASE: prestashop
       MARIADB_USER: ps_user
       MARIADB_PASSWORD: ps_pass
-      MARIADB_ROOT_PASSWORD: supersegura123
+      MARIADB_ROOT_PASSWORD: mypassword   # <- mantengo la clave que usas ahora
     volumes:
       - db_data:/var/lib/mysql:rw
     healthcheck:
-      # OJO: se usan $$ para que docker compose NO expanda la var y se pase al contenedor
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MARIADB_ROOT_PASSWORD}\" --silent"]
       interval: 10s
       timeout: 5s
@@ -27,37 +26,32 @@ services:
         condition: service_started
     environment:
       PMA_HOST: mariadb
-      MYSQL_ROOT_PASSWORD: supersegura123
+      MYSQL_ROOT_PASSWORD: mypassword
     ports:
-      - "8081:80"
+      - "127.0.0.1:8081:80"
 
   prestashop:
     image: prestashop/prestashop:8.1
     restart: unless-stopped
     depends_on:
       mariadb:
-        # arrancamos cuando el servicio esté iniciado; si quieres ser más estricto usa service_healthy
         condition: service_started
     environment:
       DB_SERVER: mariadb
       DB_NAME: prestashop
-      DB_USER: ps_user
-      DB_PASSWD: ps_pass
-      PS_INSTALL_AUTO: 1
-      PS_DEV_MODE: 0
-      PS_DOMAIN: 54.232.172.192:8080
-      PS_ENABLE_SSL: '0'
-      PS_FOLDER_INSTALL: install
-      PS_FOLDER_ADMIN: admin
+      DB_USER: root
+      DB_PASSWD: mypassword
+      PS_INSTALL_AUTO: 0
+      PS_ENABLE_SSL: "1"
       PS_LANGUAGE: es
       PS_COUNTRY: CL
-      ADMIN_MAIL: admin@prestashop.local
-      ADMIN_PASSWD: Admin123!
+      PS_DOMAIN: www.entrecopasyvinos.cl
+      PS_HANDLE_DYNAMIC_DOMAIN: 1
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     volumes:
       - ps_data:/var/www/html:rw
 
 volumes:
-  db_data: {}
-  ps_data: {}
+  db_data:
+  ps_data:

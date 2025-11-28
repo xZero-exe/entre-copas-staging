@@ -1,39 +1,28 @@
-.env
-*.sql
-*.tar.gz
-ps_data/
-db_data/
-.DS_Store
-.env
-*.sql
-*.tar.gz
-backups/
-ps_data/
-db_data/
-.DS_Store
-.env
-.env
-node_modules/
-playwright-report/
-test-results/
-.env*
-.DS_Store
-### entre-copas ignore ###
-# Docker & Compose artefactos
-*.log
+# Archivos de entorno y secretos
 .env
 .env.*
-docker-data/
-volumes/
-# PrestaShop (archivos generados/caché)
-ps_data/
-var/cache/
-var/logs/
-# Node / tooling
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
+
+# Dependencias comunes
 node_modules/
-# IDE
+vendor/
+
+# Cachés y temporales
+var/
+cache/
+tmp/
+*.tmp
+
+# Archivos de IDE/OS
 .vscode/
 .idea/
-# SO
 .DS_Store
-Thumbs.db
+
+# Docker: datos persistentes locales (si los usas)
+docker-data/
+db_data/
