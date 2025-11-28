@@ -26,3 +26,23 @@ tmp/
 # Docker: datos persistentes locales (si los usas)
 docker-data/
 db_data/
+
+# ==== Backups y dumps locales - NO versionar ====
+alter_utf8.sql
+backup_prestashop_*.sql
+backups/
+prestashop_before_utf8.sql
+prestashop_db.sql
+prestashop_files.tar.gz
+prestashop_files_2025-09-26.tar.gz
+
+# ==== Reportes de pruebas ====
+playwright-report/
+test-results/
+
+# ==== Archivos locales varios ====
+,
+127.0.0.1,
+CacheMemcache,
+false,
+smtp,
