@@ -1,48 +1,56 @@
-# Archivos de entorno y secretos
-.env
-.env.*
-*.pem
-*.key
-
-# Logs
-logs/
-*.log
-
-# Dependencias comunes
-node_modules/
-vendor/
-
-# Cachés y temporales
-var/
-cache/
-tmp/
-*.tmp
-
-# Archivos de IDE/OS
+# Basico / IDE
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
-.DS_Store
 
-# Docker: datos persistentes locales (si los usas)
-docker-data/
-db_data/
+# Secrets / env / certs
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.crt
+*.csr
 
-# ==== Backups y dumps locales - NO versionar ====
-alter_utf8.sql
-backup_prestashop_*.sql
-backups/
-prestashop_before_utf8.sql
-prestashop_db.sql
-prestashop_files.tar.gz
-prestashop_files_2025-09-26.tar.gz
+# Logs / temp
+*.log
+tmp/
+temp/
 
-# ==== Reportes de pruebas ====
-playwright-report/
-test-results/
+# Docker volumes / data (pesado)
+**/data/
+**/db_data/
+**/mariadb_data/
+**/mysql_data/
+**/redis_data/
+**/influxdb_data/
+**/grafana_data/
+**/letsencrypt/
+**/certs/
+**/ssl/
+**/acme/
+**/backups/
 
-# ==== Archivos locales varios ====
-,
-127.0.0.1,
-CacheMemcache,
-false,
-smtp,
+# Overrides locales
+docker-compose.override.yml
+docker-compose.*.override.yml
+*.local.yml
+
+# PrestaShop cache / generado
+var/cache/
+app/cache/
+cache/
+log/
+logs/
+img/tmp/
+download/
+upload/
+
+# Dependencias (si aplican)
+vendor/
+node_modules/
+__pycache__/
+*.pyc
+.venv/
